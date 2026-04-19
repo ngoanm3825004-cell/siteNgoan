@@ -1,12 +1,955 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>QuadraSolve Pro - Ứng dụng Giải & Mô Phỏng Phương Trình Bậc Hai</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧮 Giải Phương Trình Bậc 2 - Sáng Tạo</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        code, .mono { font-family: 'Fira Code', monospace; }
+
+        /* Animated gradient background */
+        body {
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #1a1a2e);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Floating particles */
+        .particle {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: floatUp linear infinite;
+            opacity: 0.15;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.15; }
+            90% { opacity: 0.15; }
+            100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Glow effect */
+        .glow-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .glow-card:hover {
+            box-shadow: 0 15px 60px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Input styling */
+        .math-input {
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            transition: all 0.3s ease;
+            width: 90px;
+            height: 70px;
+            border-radius: 16px;
+        }
+
+        .math-input:focus {
+            outline: none;
+            border-color: #818cf8;
+            box-shadow: 0 0 30px rgba(129, 140, 248, 0.4);
+            background: rgba(129, 140, 248, 0.1);
+        }
+
+        .math-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Solve button */
+        .solve-btn {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+            background-size: 200% 200%;
+            animation: btnGradient 3s ease infinite;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .solve-btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+            transform: scale(0);
+            transition: transform 0.5s ease;
+        }
+
+        .solve-btn:hover::before {
+            transform: scale(1);
+        }
+
+        .solve-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.5);
+        }
+
+        .solve-btn:active {
+            transform: scale(0.98);
+        }
+
+        @keyframes btnGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Result animations */
+        .result-enter {
+            animation: resultSlide 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes resultSlide {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Step animation */
+        .step-item {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        .step-item.show {
+            animation: stepFade 0.5s ease forwards;
+        }
+
+        @keyframes stepFade {
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Canvas styling */
+        #graphCanvas {
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Pulse dot */
+        .pulse-dot {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+        }
+
+        /* Title animation */
+        .title-glow {
+            text-shadow: 0 0 40px rgba(129, 140, 248, 0.5), 0 0 80px rgba(129, 140, 248, 0.2);
+        }
+
+        /* Typing cursor */
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 1s infinite;
+            color: #818cf8;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Scroll styling */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(129, 140, 248, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(129, 140, 248, 0.5); }
+
+        /* History item */
+        .history-item {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .history-item:hover {
+            background: rgba(129, 140, 248, 0.15) !important;
+            transform: translateX(5px);
+        }
+
+        /* Tooltip */
+        .var-label {
+            transition: all 0.3s ease;
+        }
+        .var-label:hover {
+            color: #a78bfa;
+            transform: scale(1.1);
+        }
+
+        /* Confetti */
+        .confetti-piece {
+            position: fixed;
+            pointer-events: none;
+            animation: confettiFall linear forwards;
+        }
+
+        @keyframes confettiFall {
+            0% { opacity: 1; transform: translateY(-10vh) rotate(0deg); }
+            100% { opacity: 0; transform: translateY(110vh) rotate(720deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .math-input {
+                width: 70px;
+                height: 55px;
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Floating Particles Container -->
+    <div id="particles"></div>
+
+    <!-- Main Container -->
+    <div class="relative z-10 max-w-5xl mx-auto px-4 py-8">
+
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <div class="inline-block mb-4">
+                <div class="text-6xl mb-2 animate-bounce">📐</div>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-black text-white title-glow mb-3 tracking-tight">
+                Giải Phương Trình
+            </h1>
+            <div class="flex items-center justify-center gap-3 mb-3">
+                <span class="text-5xl md:text-6xl font-black bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">ax² + bx + c = 0</span>
+            </div>
+            <p class="text-gray-400 text-lg">Nhập hệ số và khám phá phép toán ✨</p>
+        </div>
+
+        <!-- Input Section -->
+        <div class="glow-card rounded-3xl p-8 mb-8">
+            <div class="text-center mb-6">
+                <span class="text-sm font-semibold text-indigo-300 uppercase tracking-widest">Nhập phương trình</span>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-2 md:gap-4">
+                <div class="flex flex-col items-center gap-1">
+                    <span class="var-label text-xs text-gray-400 font-semibold cursor-help" title="Hệ số bậc 2">Hệ số a</span>
+                    <input type="number" id="coefA" class="math-input" placeholder="a" step="any">
+                </div>
+
+                <span class="text-3xl md:text-4xl font-bold text-gray-400 mt-5">x² +</span>
+
+                <div class="flex flex-col items-center gap-1">
+                    <span class="var-label text-xs text-gray-400 font-semibold cursor-help" title="Hệ số bậc 1">Hệ số b</span>
+                    <input type="number" id="coefB" class="math-input" placeholder="b" step="any">
+                </div>
+
+                <span class="text-3xl md:text-4xl font-bold text-gray-400 mt-5">x +</span>
+
+                <div class="flex flex-col items-center gap-1">
+                    <span class="var-label text-xs text-gray-400 font-semibold cursor-help" title="Hệ số tự do">Hệ số c</span>
+                    <input type="number" id="coefC" class="math-input" placeholder="c" step="any">
+                </div>
+
+                <span class="text-3xl md:text-4xl font-bold text-gray-400 mt-5">= 0</span>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex flex-wrap justify-center gap-4 mt-8">
+                <button onclick="solveEquation()" class="solve-btn text-white font-bold text-lg px-10 py-4 rounded-2xl shadow-lg flex items-center gap-3">
+                    <span class="text-2xl">🚀</span>
+                    <span>Giải Phương Trình</span>
+                </button>
+                <button onclick="clearAll()" class="bg-white/10 hover:bg-white/20 text-white font-semibold px-6 py-4 rounded-2xl transition-all duration-300 border border-white/10 hover:border-white/20">
+                    🗑️ Xóa
+                </button>
+                <button onclick="randomEquation()" class="bg-white/10 hover:bg-white/20 text-white font-semibold px-6 py-4 rounded-2xl transition-all duration-300 border border-white/10 hover:border-white/20">
+                    🎲 Ngẫu nhiên
+                </button>
+            </div>
+
+            <!-- Quick Examples -->
+            <div class="flex flex-wrap justify-center gap-2 mt-6">
+                <span class="text-xs text-gray-500 mr-2 mt-1">Ví dụ:</span>
+                <button onclick="setExample(1,-5,6)" class="text-xs bg-white/5 hover:bg-indigo-500/20 text-gray-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg transition-all border border-white/5">x² - 5x + 6 = 0</button>
+                <button onclick="setExample(1,0,-9)" class="text-xs bg-white/5 hover:bg-indigo-500/20 text-gray-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg transition-all border border-white/5">x² - 9 = 0</button>
+                <button onclick="setExample(1,2,1)" class="text-xs bg-white/5 hover:bg-indigo-500/20 text-gray-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg transition-all border border-white/5">x² + 2x + 1 = 0</button>
+                <button onclick="setExample(2,-7,3)" class="text-xs bg-white/5 hover:bg-indigo-500/20 text-gray-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg transition-all border border-white/5">2x² - 7x + 3 = 0</button>
+                <button onclick="setExample(1,1,1)" class="text-xs bg-white/5 hover:bg-indigo-500/20 text-gray-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg transition-all border border-white/5">x² + x + 1 = 0</button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden">
+
+            <!-- Equation Display -->
+            <div id="equationDisplay" class="glow-card rounded-3xl p-6 mb-6 text-center result-enter">
+                <div class="text-sm text-indigo-300 font-semibold mb-2 uppercase tracking-wider">Phương trình của bạn</div>
+                <div id="eqText" class="text-3xl md:text-4xl font-black text-white mono"></div>
+            </div>
+
+            <!-- Main Results Grid -->
+            <div class="grid md:grid-cols-2 gap-6 mb-6">
+
+                <!-- Discriminant Card -->
+                <div id="deltaCard" class="glow-card rounded-3xl p-6 result-enter">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-xl">⚡</div>
+                        <h3 class="text-lg font-bold text-white">Delta (Δ)</h3>
+                    </div>
+                    <div id="deltaContent" class="mono text-white space-y-2"></div>
+                </div>
+
+                <!-- Solutions Card -->
+                <div id="solutionsCard" class="glow-card rounded-3xl p-6 result-enter">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-xl">🎯</div>
+                        <h3 class="text-lg font-bold text-white">Nghiệm</h3>
+                    </div>
+                    <div id="solutionsContent"></div>
+                </div>
+            </div>
+
+            <!-- Graph Card -->
+            <div class="glow-card rounded-3xl p-6 mb-6 result-enter">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center text-xl">📊</div>
+                    <h3 class="text-lg font-bold text-white">Đồ thị Parabola</h3>
+                </div>
+                <div class="flex justify-center">
+                    <canvas id="graphCanvas" width="600" height="400"></canvas>
+                </div>
+                <div id="graphInfo" class="mt-4 text-center text-gray-400 text-sm"></div>
+            </div>
+
+            <!-- Step-by-Step Solution -->
+            <div class="glow-card rounded-3xl p-6 mb-6 result-enter">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center text-xl">📝</div>
+                    <h3 class="text-lg font-bold text-white">Các bước giải chi tiết</h3>
+                </div>
+                <div id="stepsContent" class="space-y-3"></div>
+            </div>
+
+            <!-- Properties Card -->
+            <div class="glow-card rounded-3xl p-6 mb-6 result-enter">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center text-xl">🔍</div>
+                    <h3 class="text-lg font-bold text-white">Tính chất Parabola</h3>
+                </div>
+                <div id="propertiesContent" class="grid md:grid-cols-2 gap-4"></div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div id="historySection" class="hidden glow-card rounded-3xl p-6 mt-8">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-xl">📜</div>
+                    <h3 class="text-lg font-bold text-white">Lịch sử</h3>
+                </div>
+                <button onclick="clearHistory()" class="text-xs text-gray-400 hover:text-red-400 transition-colors">Xóa lịch sử</button>
+            </div>
+            <div id="historyList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-12 text-gray-500 text-sm">
+            <p>Được tạo với ❤️ | Phương Trình Bậc 2 Calculator</p>
+            <p class="mt-1 text-xs text-gray-600">ax² + bx + c = 0 → Δ = b² - 4ac → x = (-b ± √Δ) / 2a</p>
+        </div>
+    </div>
+
+    <script>
+        // ===== PARTICLES =====
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const colors = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#818cf8'];
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 8 + 3;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
+                particle.style.animationDelay = (Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // ===== CONFETTI =====
+        function launchConfetti() {
+            const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti-piece';
+                const size = Math.random() * 10 + 5;
+                confetti.style.width = size + 'px';
+                confetti.style.height = size + 'px';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                confetti.style.animationDelay = (Math.random() * 0.5) + 's';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 4000);
+            }
+        }
+
+        // ===== FORMAT NUMBER =====
+        function fmt(n) {
+            if (Number.isInteger(n)) return n.toString();
+            return parseFloat(n.toFixed(6)).toString();
+        }
+
+        // ===== BUILD EQUATION TEXT =====
+        function buildEqText(a, b, c) {
+            let parts = [];
+            // ax²
+            if (a === 1) parts.push('x²');
+            else if (a === -1) parts.push('-x²');
+            else parts.push(fmt(a) + 'x²');
+
+            // bx
+            if (b !== 0) {
+                if (b === 1) parts.push('+ x');
+                else if (b === -1) parts.push('- x');
+                else if (b > 0) parts.push('+ ' + fmt(b) + 'x');
+                else parts.push('- ' + fmt(Math.abs(b)) + 'x');
+            }
+
+            // c
+            if (c !== 0) {
+                if (c > 0) parts.push('+ ' + fmt(c));
+                else parts.push('- ' + fmt(Math.abs(c)));
+            }
+
+            return parts.join(' ') + ' = 0';
+        }
+
+        // ===== HISTORY =====
+        let history = JSON.parse(localStorage.getItem('quadHistory') || '[]');
+
+        function addToHistory(a, b, c, result) {
+            const item = { a, b, c, result, time: new Date().toLocaleTimeString('vi-VN') };
+            history.unshift(item);
+            if (history.length > 10) history.pop();
+            localStorage.setItem('quadHistory', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const section = document.getElementById('historySection');
+            const list = document.getElementById('historyList');
+            if (history.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+            list.innerHTML = history.map((h, i) => `
+                <div class="history-item bg-white/5 rounded-xl p-3 flex items-center justify-between" onclick="setExample(${h.a},${h.b},${h.c})">
+                    <div>
+                        <span class="mono text-white text-sm">${buildEqText(h.a, h.b, h.c)}</span>
+                        <span class="text-gray-500 text-xs ml-3">${h.time}</span>
+                    </div>
+                    <span class="text-xs ${h.result.includes('vô nghiệm') ? 'text-red-400' : 'text-emerald-400'}">${h.result}</span>
+                </div>
+            `).join('');
+        }
+
+        function clearHistory() {
+            history = [];
+            localStorage.removeItem('quadHistory');
+            renderHistory();
+        }
+
+        // ===== HELPERS =====
+        function setExample(a, b, c) {
+            document.getElementById('coefA').value = a;
+            document.getElementById('coefB').value = b;
+            document.getElementById('coefC').value = c;
+            solveEquation();
+        }
+
+        function clearAll() {
+            document.getElementById('coefA').value = '';
+            document.getElementById('coefB').value = '';
+            document.getElementById('coefC').value = '';
+            document.getElementById('results').classList.add('hidden');
+        }
+
+        function randomEquation() {
+            // Generate equations that have nice solutions
+            const x1 = Math.floor(Math.random() * 11) - 5;
+            const x2 = Math.floor(Math.random() * 11) - 5;
+            const a = 1;
+            const b = -(x1 + x2);
+            const c = x1 * x2;
+            document.getElementById('coefA').value = a;
+            document.getElementById('coefB').value = b;
+            document.getElementById('coefC').value = c;
+            solveEquation();
+        }
+
+        // ===== MAIN SOLVE =====
+        function solveEquation() {
+            const a = parseFloat(document.getElementById('coefA').value);
+            const b = parseFloat(document.getElementById('coefB').value);
+            const c = parseFloat(document.getElementById('coefC').value);
+
+            if (isNaN(a)) {
+                shakeInput('coefA');
+                return;
+            }
+
+            const results = document.getElementById('results');
+            results.classList.remove('hidden');
+
+            // Show equation
+            document.getElementById('eqText').textContent = buildEqText(a, b || 0, c || 0);
+
+            let steps = [];
+            let solutionsHTML = '';
+            let resultSummary = '';
+            let roots = [];
+
+            if (a === 0) {
+                // Linear equation
+                steps.push({ label: 'Phát hiện', value: 'a = 0 → Đây là phương trình bậc nhất', icon: '⚠️' });
+                
+                if (b === 0) {
+                    if (c === 0) {
+                        steps.push({ label: 'Kết luận', value: 'Phương trình 0 = 0 → Vô số nghiệm', icon: '∞' });
+                        solutionsHTML = `<div class="text-center py-4"><span class="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Vô số nghiệm</span><p class="text-gray-400 text-sm mt-1">Mọi x đều thỏa mãn</p></div>`;
+                        resultSummary = 'Vô số nghiệm';
+                    } else {
+                        steps.push({ label: 'Kết luận', value: fmt(c) + ' = 0 → Vô nghiệm', icon: '✗' });
+                        solutionsHTML = `<div class="text-center py-4"><span class="text-2xl font-bold bg-gradient-to-r from-red-400 to-rose-400 bg-clip-text text-transparent">Vô nghiệm</span><p class="text-gray-400 text-sm mt-1">${fmt(c)} ≠ 0</p></div>`;
+                        resultSummary = 'Vô nghiệm';
+                    }
+                } else {
+                    const x = -c / b;
+                    steps.push({ label: 'Giải', value: `x = -c/b = ${fmt(-c)}/${fmt(b)} = ${fmt(x)}`, icon: '✓' });
+                    solutionsHTML = `<div class="text-center py-4"><div class="text-sm text-gray-400 mb-1">Phương trình bậc nhất</div><span class="text-3xl font-black bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent mono">x = ${fmt(x)}</span></div>`;
+                    roots = [x];
+                    resultSummary = `x = ${fmt(x)}`;
+                }
+
+                // Hide graph for linear
+                document.getElementById('deltaCard').parentElement.classList.add('hidden');
+                
+            } else {
+                document.getElementById('deltaCard').parentElement.classList.remove('hidden');
+
+                // Step 1: Delta
+                const delta = b * b - 4 * a * c;
+                steps.push({ label: 'Tính Delta', value: `Δ = b² - 4ac = (${fmt(b)})² - 4·${fmt(a)}·${fmt(c)} = ${fmt(b*b)} - ${fmt(4*a*c)} = ${fmt(delta)}`, icon: '1️⃣' });
+
+                // Delta content
+                document.getElementById('deltaContent').innerHTML = `
+                    <div class="text-2xl font-bold text-white mb-2">Δ = ${fmt(delta)}</div>
+                    <div class="text-sm ${delta > 0 ? 'text-emerald-400' : delta === 0 ? 'text-amber-400' : 'text-red-400'}">
+                        ${delta > 0 ? '✓ Δ > 0 → Phương trình có 2 nghiệm phân biệt' : delta === 0 ? '⬤ Δ = 0 → Phương trình có nghiệm kép' : '✗ Δ < 0 → Phương trình vô nghiệm thực'}
+                    </div>
+                    <div class="mt-3 bg-white/5 rounded-xl p-3">
+                        <div class="text-xs text-gray-500">Công thức:</div>
+                        <div class="mono text-indigo-300">Δ = b² - 4ac</div>
+                    </div>
+                `;
+
+                if (delta > 0) {
+                    const sqrtDelta = Math.sqrt(delta);
+                    const x1 = (-b + sqrtDelta) / (2 * a);
+                    const x2 = (-b - sqrtDelta) / (2 * a);
+                    roots = [x1, x2];
+
+                    steps.push({ label: 'Căn Delta', value: `√Δ = √${fmt(delta)} = ${fmt(sqrtDelta)}`, icon: '2️⃣' });
+                    steps.push({ label: 'Nghiệm x₁', value: `x₁ = (-b + √Δ) / 2a = (${fmt(-b)} + ${fmt(sqrtDelta)}) / ${fmt(2*a)} = ${fmt(x1)}`, icon: '3️⃣' });
+                    steps.push({ label: 'Nghiệm x₂', value: `x₂ = (-b - √Δ) / 2a = (${fmt(-b)} - ${fmt(sqrtDelta)}) / ${fmt(2*a)} = ${fmt(x2)}`, icon: '4️⃣' });
+
+                    solutionsHTML = `
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gradient-to-br from-emerald-500/20 to-green-500/10 rounded-2xl p-4 text-center border border-emerald-500/20">
+                                <div class="text-xs text-emerald-300 mb-1">Nghiệm x₁</div>
+                                <div class="text-2xl font-black text-emerald-400 mono">${fmt(x1)}</div>
+                            </div>
+                            <div class="bg-gradient-to-br from-blue-500/20 to-cyan-500/10 rounded-2xl p-4 text-center border border-blue-500/20">
+                                <div class="text-xs text-blue-300 mb-1">Nghiệm x₂</div>
+                                <div class="text-2xl font-black text-blue-400 mono">${fmt(x2)}</div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3 text-gray-400 text-xs">Vị trí đối xứng qua trục x = ${fmt(-b/(2*a))}</div>
+                    `;
+                    resultSummary = `x₁=${fmt(x1)}, x₂=${fmt(x2)}`;
+                    launchConfetti();
+
+                } else if (delta === 0) {
+                    const x = -b / (2 * a);
+                    roots = [x];
+
+                    steps.push({ label: 'Nghiệm kép', value: `x = -b / 2a = ${fmt(-b)} / ${fmt(2*a)} = ${fmt(x)}`, icon: '2️⃣' });
+
+                    solutionsHTML = `
+                        <div class="bg-gradient-to-br from-amber-500/20 to-yellow-500/10 rounded-2xl p-6 text-center border border-amber-500/20">
+                            <div class="text-xs text-amber-300 mb-1">Nghiệm kép</div>
+                            <div class="text-3xl font-black text-amber-400 mono">x = ${fmt(x)}</div>
+                            <div class="text-xs text-gray-400 mt-2">Đỉnh của parabola chạm trục hoành</div>
+                        </div>
+                    `;
+                    resultSummary = `x = ${fmt(x)} (kép)`;
+                    launchConfetti();
+
+                } else {
+                    const realPart = -b / (2 * a);
+                    const imagPart = Math.sqrt(-delta) / (2 * a);
+
+                    steps.push({ label: 'Số phức', value: `√Δ = √(${fmt(delta)}) = ${fmt(Math.sqrt(-delta))}i`, icon: '2️⃣' });
+                    steps.push({ label: 'Nghiệm phức z₁', value: `z₁ = ${fmt(realPart)} + ${fmt(imagPart)}i`, icon: '3️⃣' });
+                    steps.push({ label: 'Nghiệm phức z₂', value: `z₂ = ${fmt(realPart)} - ${fmt(imagPart)}i`, icon: '4️⃣' });
+
+                    solutionsHTML = `
+                        <div class="text-center py-2">
+                            <div class="text-sm text-red-400 font-semibold mb-3">Vô nghiệm thực</div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-gradient-to-br from-purple-500/20 to-violet-500/10 rounded-2xl p-4 text-center border border-purple-500/20">
+                                    <div class="text-xs text-purple-300 mb-1">Nghiệm phức z₁</div>
+                                    <div class="text-lg font-bold text-purple-400 mono">${fmt(realPart)} + ${fmt(imagPart)}i</div>
+                                </div>
+                                <div class="bg-gradient-to-br from-pink-500/20 to-rose-500/10 rounded-2xl p-4 text-center border border-pink-500/20">
+                                    <div class="text-xs text-pink-300 mb-1">Nghiệm phức z₂</div>
+                                    <div class="text-lg font-bold text-pink-400 mono">${fmt(realPart)} - ${fmt(imagPart)}i</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    resultSummary = 'Vô nghiệm thực (phức)';
+                }
+            }
+
+            // Render solutions
+            document.getElementById('solutionsContent').innerHTML = solutionsHTML;
+
+            // Render steps with animation
+            const stepsContainer = document.getElementById('stepsContent');
+            stepsContainer.innerHTML = steps.map((s, i) => `
+                <div class="step-item flex items-start gap-3 bg-white/5 rounded-xl p-4" style="animation-delay: ${i * 0.15}s">
+                    <span class="text-lg">${s.icon}</span>
+                    <div>
+                        <div class="text-xs font-semibold text-indigo-300 uppercase tracking-wider">${s.label}</div>
+                        <div class="mono text-white text-sm mt-1">${s.value}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Animate steps
+            setTimeout(() => {
+                document.querySelectorAll('.step-item').forEach((el, i) => {
+                    setTimeout(() => el.classList.add('show'), i * 200);
+                });
+            }, 100);
+
+            // Draw graph
+            if (a !== 0) {
+                drawGraph(a, b, c, roots);
+            }
+
+            // Properties
+            if (a !== 0) {
+                const vertex_x = -b / (2 * a);
+                const vertex_y = a * vertex_x * vertex_x + b * vertex_x + c;
+                const axisOfSymmetry = vertex_x;
+                const yIntercept = c;
+                const direction = a > 0 ? '⬆️ Hướng lên' : '⬇️ Hướng xuống';
+
+                document.getElementById('propertiesContent').innerHTML = `
+                    <div class="bg-white/5 rounded-xl p-4">
+                        <div class="text-xs text-gray-500">Đỉnh (Vertex)</div>
+                        <div class="mono text-white font-semibold mt-1">(${fmt(vertex_x)}, ${fmt(vertex_y)})</div>
+                    </div>
+                    <div class="bg-white/5 rounded-xl p-4">
+                        <div class="text-xs text-gray-500">Trục đối xứng</div>
+                        <div class="mono text-white font-semibold mt-1">x = ${fmt(axisOfSymmetry)}</div>
+                    </div>
+                    <div class="bg-white/5 rounded-xl p-4">
+                        <div class="text-xs text-gray-500">Giao trục Y</div>
+                        <div class="mono text-white font-semibold mt-1">(0, ${fmt(yIntercept)})</div>
+                    </div>
+                    <div class="bg-white/5 rounded-xl p-4">
+                        <div class="text-xs text-gray-500">Chiều mở</div>
+                        <div class="text-white font-semibold mt-1">${direction}</div>
+                    </div>
+                    <div class="bg-white/5 rounded-xl p-4">
+                        <div class="text-xs text-gray-500">P (đỉnh y)</div>
+                        <div class="mono text-white font-semibold mt-1 ${vertex_y < 0 ? 'text-emerald-400' : vertex_y > 0 ? 'text-red-400' : 'text-amber-400'}">${vertex_y < 0 ? 'P < 0 (Min)' : vertex_y > 0 ? 'P > 0 (Max)' : 'P = 0'}</div>
+                    </div>
+                    <div class="bg-white/5 rounded-xl p-4">
+                        <div class="text-xs text-gray-500">Hệ số a</div>
+                        <div class="mono text-white font-semibold mt-1">a = ${fmt(a)}</div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('propertiesContent').innerHTML = `
+                    <div class="col-span-2 text-center text-gray-400 py-4">Không áp dụng cho phương trình bậc nhất</div>
+                `;
+            }
+
+            // Add to history
+            addToHistory(a, b || 0, c || 0, resultSummary);
+
+            // Scroll to results
+            setTimeout(() => {
+                results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 200);
+        }
+
+        // ===== DRAW GRAPH =====
+        function drawGraph(a, b, c, roots) {
+            const canvas = document.getElementById('graphCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Make canvas responsive
+            const maxWidth = Math.min(600, window.innerWidth - 80);
+            canvas.width = maxWidth;
+            canvas.height = maxWidth * 0.667;
+
+            const W = canvas.width;
+            const H = canvas.height;
+            const centerX = W / 2;
+            const centerY = H / 2;
+
+            // Clear
+            ctx.clearRect(0, 0, W, H);
+
+            // Background
+            ctx.fillStyle = 'rgba(15, 12, 41, 0.8)';
+            ctx.fillRect(0, 0, W, H);
+
+            // Calculate range
+            const vertex_x = -b / (2 * a);
+            const vertex_y = a * vertex_x * vertex_x + b * vertex_x + c;
+
+            // Determine x range
+            let xMin, xMax;
+            if (roots.length === 2) {
+                const padding = Math.max(Math.abs(roots[0] - roots[1]) * 0.8, 3);
+                xMin = Math.min(roots[0], roots[1], vertex_x) - padding;
+                xMax = Math.max(roots[0], roots[1], vertex_x) + padding;
+            } else if (roots.length === 1) {
+                xMin = roots[0] - 5;
+                xMax = roots[0] + 5;
+            } else {
+                xMin = vertex_x - 5;
+                xMax = vertex_x + 5;
+            }
+
+            const yValues = [];
+            for (let i = 0; i <= 100; i++) {
+                const x = xMin + (xMax - xMin) * i / 100;
+                yValues.push(a * x * x + b * x + c);
+            }
+            const yMin = Math.min(...yValues, 0) - 1;
+            const yMax = Math.max(...yValues, 0) + 1;
+
+            const padding = 30;
+            const graphW = W - padding * 2;
+            const graphH = H - padding * 2;
+
+            function toScreen(x, y) {
+                return {
+                    sx: padding + (x - xMin) / (xMax - xMin) * graphW,
+                    sy: padding + (1 - (y - yMin) / (yMax - yMin)) * graphH
+                };
+            }
+
+            // Grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            const gridStepX = Math.ceil((xMax - xMin) / 10);
+            const gridStepY = Math.ceil((yMax - yMin) / 8);
+            for (let x = Math.ceil(xMin); x <= xMax; x += Math.max(gridStepX, 1)) {
+                const p = toScreen(x, 0);
+                ctx.beginPath();
+                ctx.moveTo(p.sx, padding);
+                ctx.lineTo(p.sx, H - padding);
+                ctx.stroke();
+            }
+            for (let y = Math.ceil(yMin); y <= yMax; y += Math.max(gridStepY, 1)) {
+                const p = toScreen(0, y);
+                ctx.beginPath();
+                ctx.moveTo(padding, p.sy);
+                ctx.lineTo(W - padding, p.sy);
+                ctx.stroke();
+            }
+
+            // Axes
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            // X axis
+            const originY = toScreen(0, 0);
+            if (originY.sy >= padding && originY.sy <= H - padding) {
+                ctx.beginPath();
+                ctx.moveTo(padding, originY.sy);
+                ctx.lineTo(W - padding, originY.sy);
+                ctx.stroke();
+            }
+            // Y axis
+            if (originY.sx >= padding && originY.sx <= W - padding) {
+                ctx.beginPath();
+                ctx.moveTo(originY.sx, padding);
+                ctx.lineTo(originY.sx, H - padding);
+                ctx.stroke();
+            }
+
+            // Axis labels
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.font = '11px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+                const p = toScreen(x, 0);
+                const yPos = (originY.sy >= padding && originY.sy <= H - padding) ? originY.sy + 18 : H - padding + 18;
+                if (x !== 0) ctx.fillText(x, p.sx, yPos);
+            }
+            ctx.textAlign = 'right';
+            for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
+                if (y === 0) continue;
+                const p = toScreen(0, y);
+                const xPos = (originY.sx >= padding && originY.sx <= W - padding) ? originY.sx - 8 : padding - 5;
+                ctx.fillText(y, xPos, p.sy + 4);
+            }
+
+            // Draw parabola with glow
+            ctx.shadowColor = '#818cf8';
+            ctx.shadowBlur = 15;
+            ctx.strokeStyle = '#818cf8';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i <= 200; i++) {
+                const x = xMin + (xMax - xMin) * i / 200;
+                const y = a * x * x + b * x + c;
+                const p = toScreen(x, y);
+                if (i === 0) ctx.moveTo(p.sx, p.sy);
+                else ctx.lineTo(p.sx, p.sy);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Axis of symmetry (dashed)
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = 'rgba(236, 72, 153, 0.4)';
+            ctx.lineWidth = 1;
+            const vScreen = toScreen(vertex_x, 0);
+            ctx.beginPath();
+            ctx.moveTo(vScreen.sx, padding);
+            ctx.lineTo(vScreen.sx, H - padding);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Vertex point
+            const vPoint = toScreen(vertex_x, vertex_y);
+            ctx.fillStyle = '#f59e0b';
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(vPoint.sx, vPoint.sy, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Vertex label
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 11px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Đỉnh(${fmt(vertex_x)}, ${fmt(vertex_y)})`, vPoint.sx, vPoint.sy - 14);
+
+            // Root points
+            roots.forEach((root, i) => {
+                const p = toScreen(root, 0);
+                // Glow
+                ctx.fillStyle = i === 0 ? '#10b981' : '#3b82f6';
+                ctx.shadowColor = i === 0 ? '#10b981' : '#3b82f6';
+                ctx.shadowBlur = 20;
+                ctx.beginPath();
+                ctx.arc(p.sx, p.sy, 7, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Label
+                ctx.fillStyle = i === 0 ? '#10b981' : '#3b82f6';
+                ctx.font = 'bold 12px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                const label = roots.length === 1 ? `x = ${fmt(root)}` : `x${i + 1} = ${fmt(root)}`;
+                ctx.fillText(label, p.sx, p.sy + 22);
+            });
+
+            // Graph info
+            document.getElementById('graphInfo').innerHTML = `
+                <span class="inline-flex items-center gap-2 mr-4"><span class="w-3 h-3 rounded-full bg-indigo-400 inline-block"></span> f(x) = ${buildEqText(a, b, c).replace(' = 0', '')}</span>
+                <span class="inline-flex items-center gap-2 mr-4"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Đỉnh</span>
+                ${roots.length > 0 ? '<span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span> Nghiệm</span>' : ''}
+            `;
+        }
+
+        // ===== SHAKE INPUT =====
+        function shakeInput(id) {
+            const el = document.getElementById(id);
+            el.style.borderColor = '#ef4444';
+            el.style.animation = 'none';
+            el.offsetHeight; // trigger reflow
+            el.style.animation = 'shake 0.5s ease';
+            setTimeout(() => {
+                el.style.borderColor = '';
+                el.style.animation = '';
+            }, 1000);
+        }
+
+        // Add shake animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                20% { transform: translateX(-10px); }
+                40% { transform: translateX(10px); }
+                60% { transform: translateX(-10px); }
+                80% { transform: translateX(10px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // ===== KEYBOARD SHORTCUT =====
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') solveEquation();
+            if (e.key === 'Escape') clearAll();
+        });
+
+        // ===== INIT =====
+        renderHistory();
+
+        // Auto-focus first input
+        document.getElementById('coefA').focus();
+    </script>
+</body>
 </html>
